@@ -8,8 +8,12 @@
 import SwiftUI
 
 class MultipleViewModel: ObservableObject {
-    @Published var currentPage: Int = 1
-//    var totalPage: Int = 8
+    @Published var currentPage: Int = 0
+    var totalPage: Int = 8
+    
+    deinit {
+        print("MultipleViewModel deinit")
+    }
 }
 
 
@@ -18,21 +22,23 @@ struct MultipleViewPage: View {
     
     var body: some View {
         TabView(selection: $viewModel.currentPage) {
-            LabelPageView(pageIndex: 8 + 1)
-                .tag(0)
+            LabelPageView(pageIndex: viewModel.totalPage)
+                .tag(-1)
             
-            ForEach(1...8, id: \.self) { pageIndex in
+            ForEach(0..<viewModel.totalPage, id: \.self) { pageIndex in
                 LabelPageView(pageIndex: pageIndex)
                     .tag(pageIndex)
             }
             
-            LabelPageView(pageIndex: 0)
-                .tag(8 + 1)
+            LabelPageView(pageIndex: -1)
+                .tag(-1)
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
         .modifier(
             InfiniteLoopModifier(
-                currentPage: $viewModel.currentPage)
+                currentPage: $viewModel.currentPage,
+                totalPage: viewModel.totalPage
+            )
         )
         .environment(\.colorScheme, .dark)
     }
@@ -42,6 +48,7 @@ struct MultipleViewPage: View {
 
 fileprivate struct InfiniteLoopModifier: ViewModifier {
     @Binding var currentPage: Int
+    let totalPage: Int
     
     @State private var previousPage: Int?
     
@@ -55,23 +62,23 @@ fileprivate struct InfiniteLoopModifier: ViewModifier {
             .onChange(of: currentPage) { oldValue, newPage in
                 guard newPage != previousPage else { return }
                 
-                if newPage == 9 {
+                if newPage == -1 && previousPage == totalPage - 1 {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        currentPage = 8
+                        currentPage = totalPage - 1
                         
                         DispatchQueue.main.async {
-                            previousPage = 8
-                            currentPage = 1
+                            previousPage = totalPage - 1
+                            currentPage = 0
                         }
                     }
                 }
-                else if newPage == 0 {
+                else if newPage == -1 && previousPage == 0 {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        currentPage = 1
+                        currentPage = 0
                         
                         DispatchQueue.main.async {
-                            previousPage = 1
-                            currentPage = 8
+                            previousPage = 0
+                            currentPage = totalPage - 1
                         }
                     }
                 } else {
